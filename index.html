@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SIAKAD Sekolah</title>
+  <title>SIAKAD & Sistem Kedisiplinan Sekolah</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- CSS Variable & Style Dinamis -->
+  <!-- Style Warna Tema Dinamis -->
   <style>
     :root {
-      --primary-color: #2563eb; /* Warna Default: Blue */
+      --primary-color: #2563eb;
       --primary-hover: #1d4ed8;
     }
     .bg-theme { background-color: var(--primary-color) !important; }
     .bg-theme-hover:hover { background-color: var(--primary-hover) !important; }
     .text-theme { color: var(--primary-color) !important; }
-    .border-theme { border-color: var(--primary-color) !important; }
   </style>
 
   <script>
-    // Load Warna Tema dari LocalStorage atau Supabase secara otomatis
     const savedColor = localStorage.getItem('theme_color') || '#2563eb';
     const savedHover = localStorage.getItem('theme_hover') || '#1d4ed8';
     document.documentElement.style.setProperty('--primary-color', savedColor);
@@ -32,7 +32,7 @@
   <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100">
     
     <!-- Branding Header -->
-    <div class="bg-blue-600 p-8 text-center text-white relative">
+    <div class="bg-theme p-8 text-center text-white relative transition-all">
       <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 text-3xl shadow-inner">
         🏫
       </div>
@@ -44,37 +44,39 @@
     <form id="loginForm" class="p-6 space-y-4">
       <div>
         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Email / Username</label>
-        <input type="email" id="email" required placeholder="nama@sekolah.sch.id" class="w-full border border-slate-300 rounded-lg p-3 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+        <input type="email" id="email" required placeholder="nama@sekolah.sch.id" class="w-full border border-slate-300 rounded-lg p-3 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition">
       </div>
 
       <div>
         <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Password</label>
-        <input type="password" id="password" required placeholder="••••••••" class="w-full border border-slate-300 rounded-lg p-3 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+        <input type="password" id="password" required placeholder="••••••••" class="w-full border border-slate-300 rounded-lg p-3 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition">
       </div>
 
-      <button type="submit" id="btnLogin" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition duration-150 flex items-center justify-center gap-2">
+      <button type="submit" id="btnLogin" class="w-full bg-theme bg-theme-hover text-white font-bold py-3 rounded-lg shadow-md transition flex items-center justify-center gap-2">
         <span>Masuk ke Sistem</span> ➔
       </button>
 
-      <!-- Alert Status -->
       <div id="statusMsg" class="hidden p-3 rounded-lg text-xs text-center font-medium"></div>
     </form>
 
-    <!-- Shortcut Cepat untuk Testing/Demo (Langsung Pindah Halaman) -->
+    <!-- Shortcut Cepat untuk Testing/Demo -->
     <div class="bg-slate-50 p-5 border-t border-slate-200">
-      <p class="text-xs font-bold text-slate-500 text-center uppercase tracking-wider mb-3">🚀 Akses Cepat Modul (Testing):</p>
+      <p class="text-xs font-bold text-slate-500 text-center uppercase tracking-wider mb-3">🚀 Akses Langsung Modul:</p>
       <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
-        <a href="lapor.html" class="flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:border-blue-500 hover:text-blue-600 text-slate-700 py-2.5 px-3 rounded-lg shadow-sm transition">
+        <a href="lapor.html" class="flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:border-blue-500 text-slate-700 py-2.5 px-3 rounded-lg shadow-sm transition">
           <span>📝</span> Form Guru
         </a>
-        <a href="wali-kelas.html" class="flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:border-blue-500 hover:text-blue-600 text-slate-700 py-2.5 px-3 rounded-lg shadow-sm transition">
+        <a href="wali-kelas.html" class="flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:border-blue-500 text-slate-700 py-2.5 px-3 rounded-lg shadow-sm transition">
           <span>👨‍🏫</span> Wali Kelas
         </a>
-        <a href="kesiswaan.html" class="flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:border-blue-500 hover:text-blue-600 text-slate-700 py-2.5 px-3 rounded-lg shadow-sm transition">
+        <a href="kesiswaan.html" class="flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:border-blue-500 text-slate-700 py-2.5 px-3 rounded-lg shadow-sm transition">
           <span>📊</span> Kesiswaan
         </a>
-        <a href="ortu.html" class="flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:border-blue-500 hover:text-blue-600 text-slate-700 py-2.5 px-3 rounded-lg shadow-sm transition">
+        <a href="ortu.html" class="flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:border-blue-500 text-slate-700 py-2.5 px-3 rounded-lg shadow-sm transition">
           <span>📱</span> Portal Ortu
+        </a>
+        <a href="settings.html" class="col-span-2 flex items-center justify-center gap-1.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 py-2.5 px-3 rounded-lg shadow-sm transition">
+          <span>🎨</span> Pengaturan Tema & Warna Aplikasi
         </a>
       </div>
     </div>
@@ -82,27 +84,17 @@
   </div>
 
   <script>
-    // ⚙️ SUPABASE CONFIG (SUDAH DISESUAIKAN DENGAN SUPABASE LU)
-    const SUPABASE_URL = 'https://xjnhknntbytizgecqdox.supabase.co';[cite: 2]
-    const SUPABASE_KEY = 'sb_publishable_yUR2kIFIsUZ0g7RUomempg_gmP3z...'; // Masukkan string Publishable Key lengkap milikmu[cite: 1]
+    // ⚙️ SUPABASE CONFIG
+    const SUPABASE_URL = 'https://xjnhknntbytizgecqdox.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_yUR2kIFIsUZ0g7RUomempg_gmP3z...'; // Masukkan key lengkap lu jika perlu
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const loginForm = document.getElementById('loginForm');
     const statusMsg = document.getElementById('statusMsg');
     const btnLogin = document.getElementById('btnLogin');
 
-    // 1. Cek jika user sudah punya session login aktif
-    async function checkSession() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session) {
-        redirectToDashboard(session.user.id);
-      }
-    }
-
-    // 2. Autentikasi Login
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
       btnLogin.disabled = true;
       btnLogin.innerText = "⏳ Memproses...";
       statusMsg.className = "hidden";
@@ -122,46 +114,9 @@
         btnLogin.innerText = "Masuk ke Sistem ➔";
       } else {
         statusMsg.className = "p-3 rounded-lg text-xs text-center font-medium bg-emerald-100 text-emerald-700 block";
-        statusMsg.innerText = "✅ Login Berhasil! Mengalihkan...";
-        redirectToDashboard(data.user.id);
+        statusMsg.innerText = "✅ Login Berhasil!";
       }
     });
-
-    // 3. Routing Otomatis Sesuai Role
-    async function redirectToDashboard(userId) {
-      const { data: profile, error } = await supabaseClient
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
-
-      if (error || !profile) {
-        window.location.href = 'lapor.html';
-        return;
-      }
-
-      switch (profile.role) {
-        case 'guru':
-          window.location.href = 'lapor.html';
-          break;
-        case 'wali_kelas':
-          window.location.href = 'wali-kelas.html';
-          break;
-        case 'kesiswaan':
-          window.location.href = 'kesiswaan.html';
-          break;
-        case 'ortu':
-          window.location.href = 'ortu.html';
-          break;
-        case 'admin':
-          window.location.href = 'kesiswaan.html';
-          break;
-        default:
-          window.location.href = 'lapor.html';
-      }
-    }
-
-    checkSession();
   </script>
 </body>
 </html>
