@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIAKAD Sekolah</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CSS Variable & Style Dinamis -->
+  <style>
+    :root {
+      --primary-color: #2563eb; /* Warna Default: Blue */
+      --primary-hover: #1d4ed8;
+    }
+    .bg-theme { background-color: var(--primary-color) !important; }
+    .bg-theme-hover:hover { background-color: var(--primary-hover) !important; }
+    .text-theme { color: var(--primary-color) !important; }
+    .border-theme { border-color: var(--primary-color) !important; }
+  </style>
+
+  <script>
+    // Load Warna Tema dari LocalStorage atau Supabase secara otomatis
+    const savedColor = localStorage.getItem('theme_color') || '#2563eb';
+    const savedHover = localStorage.getItem('theme_hover') || '#1d4ed8';
+    document.documentElement.style.setProperty('--primary-color', savedColor);
+    document.documentElement.style.setProperty('--primary-hover', savedHover);
+  </script>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 md:p-8 font-sans">
+
+  <div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800">👨‍🏫 Dashboard Wali Kelas</h1>
+        <p class="text-slate-500 text-xs mt-0.5">Tindak lanjuti & selesaikan laporan kedisiplinan siswa di kelas asuhanmu.</p>
+      </div>
+      <a href="index.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition self-start md:self-auto flex items-center gap-1">
+        🏠 Kembali ke Home
+      </a>
+    </div>
+
+    <!-- Table Container -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="font-bold text-slate-800 text-base">📩 Daftar Laporan Kedisiplinan Siswa</h2>
+        <button onclick="fetchReports()" class="text-blue-600 hover:text-blue-700 text-xs font-semibold flex items-center gap-1">
+          🔄 Refresh Data
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 text-[11px] uppercase tracking-wider border-b border-slate-100">
+              <th class="p-4">Tanggal & Siswa</th>
+              <th class="p-4">Kronologi</th>
+              <th class="p-4">Tindakan Awal Guru</th>
+              <th class="p-4">Status</th>
+              <th class="p-4 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="reportsTable" class="divide-y divide-slate-100 text-xs text-slate-700">
+            <tr>
+              <td colspan="5" class="p-8 text-center text-slate-400">Memuat laporan dari database...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Action Wali Kelas -->
+  <div id="actionModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-100">
+      <h3 class="text-lg font-bold text-slate-800">✍️ Form Tindak Lanjut Wali Kelas</h3>
+      
+      <input type="hidden" id="modalReportId">
+      
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Catatan Pembinaan / Tindak Lanjut</label>
+        <textarea id="modalFollowUp" rows="3" placeholder="Misal: Siswa sudah dipanggil ke ruang guru, diberikan nasihat, dan berjanji tidak mengulangi..." class="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pilih Status Akhir Kasus</label>
+        <select id="modalStatus" class="w-full border border-slate-300 rounded-lg p-2.5 bg-white text-xs">
+          <option value="closed">🟢 Selesai (Closed - Ditangani Wali Kelas)</option>
+          <option value="escalated_kesiswaan">🚨 Eskalasi ke Kesiswaan / BK (Pelanggaran Berat)</option>
+        </select>
+      </div>
+
+      <div class="flex gap-2 justify-end pt-2">
+        <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs transition">Batal</button>
+        <button onclick="submitFollowUp()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs transition">Simpan & Perbarui</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ⚙️ SUPABASE CONFIG (TERHUBUNG KE DATABASE LU)
+    const SUPABASE_URL = 'https://xjnhknntbytizgecqdox.supabase.co';[cite: 2]
+    const SUPABASE_KEY = 'YOUR_SUPABASE_PUBLISHABLE_KEY'; // Ganti dengan string Publishable Key lengkap milikmu[cite: 1]
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const reportsTable = document.getElementById('reportsTable');
+    const actionModal = document.getElementById('actionModal');
+
+    // 1. Ambil data laporan dari Supabase
+    async function fetchReports() {
+      reportsTable.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400">Memuat laporan...</td></tr>';
+
+      const { data: reports, error } = await supabaseClient
+        .from('discipline_reports')
+        .select(`
+          id,
+          chronology,
+          initial_action,
+          status,
+          created_at,
+          students ( full_name )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        reportsTable.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-rose-500 font-medium">❌ Gagal memuat data: ${error.message}</td></tr>`;
+        return;
+      }
+
+      if (!reports || reports.length === 0) {
+        reportsTable.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400">Belum ada laporan kedisiplinan yang masuk.</td></tr>';
+        return;
+      }
+
+      reportsTable.innerHTML = '';
+      reports.forEach(r => {
+        const studentName = r.students?.full_name || 'Siswa (Data Dihapus)';
+        const dateStr = new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        
+        let statusBadge = '<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full">Pending Wali Kelas</span>';
+        if (r.status === 'closed') {
+          statusBadge = '<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full">Selesai (Closed)</span>';
+        } else if (r.status === 'escalated_kesiswaan') {
+          statusBadge = '<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 py-1 rounded-full">Eskalasi BK</span>';
+        }
+
+        reportsTable.innerHTML += `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="p-4 font-bold text-slate-800">
+              ${studentName}
+              <div class="text-[11px] font-normal text-slate-400">${dateStr}</div>
+            </td>
+            <td class="p-4 max-w-xs text-slate-600 truncate">${r.chronology}</td>
+            <td class="p-4 max-w-xs text-slate-600 truncate">${r.initial_action}</td>
+            <td class="p-4">${statusBadge}</td>
+            <td class="p-4 text-right">
+              ${r.status === 'pending_wali_kelas' 
+                ? `<button onclick="openModal('${r.id}')" class="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-sm transition">Tindak Lanjut</button>`
+                : `<span class="text-[11px] text-slate-400 font-medium">Selesai Ditangani</span>`}
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // 2. Buka modal tindak lanjut
+    function openModal(reportId) {
+      document.getElementById('modalReportId').value = reportId;
+      document.getElementById('modalFollowUp').value = '';
+      actionModal.classList.remove('hidden');
+    }
+
+    // 3. Tutup modal
+    function closeModal() {
+      actionModal.classList.add('hidden');
+    }
+
+    // 4. Kirim Update Tindak Lanjut ke Supabase
+    async function submitFollowUp() {
+      const reportId = document.getElementById('modalReportId').value;
+      const followUp = document.getElementById('modalFollowUp').value;
+      const status = document.getElementById('modalStatus').value;
+
+      if (!followUp) {
+        alert("Harap isi catatan pembinaan terlebih dahulu!");
+        return;
+      }
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const currentUserId = session ? session.user.id : null;
+
+      const { error } = await supabaseClient
+        .from('discipline_reports')
+        .update({
+          follow_up_action: followUp,
+          status: status,
+          follow_up_by: currentUserId,
+          follow_up_at: new Date().toISOString()
+        })
+        .eq('id', reportId);
+
+      if (error) {
+        alert("Gagal memperbarui laporan: " + error.message);
+      } else {
+        closeModal();
+        fetchReports();
+      }
+    }
+
+    // Jalankan fungsi fetch saat halaman dibuka
+    fetchReports();
+  </script>
+</body>
+</html>

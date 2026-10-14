@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengaturan Tema - SIAKAD</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+    }
+    .bg-theme { background-color: var(--primary-color) !important; }
+    .bg-theme-hover:hover { background-color: var(--primary-hover) !important; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen p-6 font-sans">
+
+  <div class="max-w-md mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+    <div class="bg-theme p-6 text-white transition-all">
+      <h1 class="text-xl font-bold">🎨 Pengaturan Tema Aplikasi</h1>
+      <p class="text-xs opacity-90 mt-1">Pilih warna utama untuk antarmuka aplikasi sekolah.</p>
+    </div>
+
+    <div class="p-6 space-y-5">
+      <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Pilih Palette Warna:</label>
+      
+      <!-- Palette Buttons -->
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Biru -->
+        <button onclick="changeTheme('#2563eb', '#1d4ed8')" class="p-3 rounded-xl border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition">
+          <span class="w-6 h-6 rounded-full bg-blue-600 block shadow-sm"></span>
+          <span class="text-xs font-bold text-slate-700">Biru Classic</span>
+        </button>
+
+        <!-- Hijau Islami / NU -->
+        <button onclick="changeTheme('#059669', '#047857')" class="p-3 rounded-xl border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition">
+          <span class="w-6 h-6 rounded-full bg-emerald-600 block shadow-sm"></span>
+          <span class="text-xs font-bold text-slate-700">Hijau Islami</span>
+        </button>
+
+        <!-- Ungu Modern -->
+        <button onclick="changeTheme('#7c3aed', '#6d28d9')" class="p-3 rounded-xl border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition">
+          <span class="w-6 h-6 rounded-full bg-violet-600 block shadow-sm"></span>
+          <span class="text-xs font-bold text-slate-700">Ungu Modern</span>
+        </button>
+
+        <!-- Tosca / Teal -->
+        <button onclick="changeTheme('#0d9488', '#0f766e')" class="p-3 rounded-xl border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition">
+          <span class="w-6 h-6 rounded-full bg-teal-600 block shadow-sm"></span>
+          <span class="text-xs font-bold text-slate-700">Teal / Tosca</span>
+        </button>
+
+        <!-- Merah / Maroon -->
+        <button onclick="changeTheme('#dc2626', '#b91c1c')" class="p-3 rounded-xl border border-slate-200 flex items-center gap-2 hover:bg-slate-50 transition">
+          <span class="w-6 h-6 rounded-full bg-red-600 block shadow-sm"></span>
+          <span class="text-xs font-bold text-slate-700">Merah Bold</span>
+        </button>
+
+        <!-- Custom Color Picker -->
+        <div class="p-2 rounded-xl border border-slate-200 flex items-center justify-between col-span-2">
+          <span class="text-xs font-bold text-slate-700 ml-2">Pilih Warna Bebas (Custom Hex):</span>
+          <input type="color" id="customPicker" onchange="changeTheme(this.value, this.value)" class="w-8 h-8 rounded-lg border-0 cursor-pointer">
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
+        <a href="index.html" class="text-xs text-slate-500 font-semibold hover:underline">⬅️ Kembali ke Home</a>
+        <span id="saveMsg" class="text-xs font-bold text-emerald-600 hidden">✅ Tema Berhasil Disimpan!</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function changeTheme(mainColor, hoverColor) {
+      // 1. Terapkan variabel CSS secara real-time
+      document.documentElement.style.setProperty('--primary-color', mainColor);
+      document.documentElement.style.setProperty('--primary-hover', hoverColor);
+
+      // 2. Simpan ke browser storage (langsung berdampak ke semua halaman!)
+      localStorage.setItem('theme_color', mainColor);
+      localStorage.setItem('theme_hover', hoverColor);
+
+      // 3. Tampilkan Notifikasi
+      const msg = document.getElementById('saveMsg');
+      msg.classList.remove('hidden');
+      setTimeout(() => msg.classList.add('hidden'), 2000);
+    }
+  </script>
+</body>
+</html>

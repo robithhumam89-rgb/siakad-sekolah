@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIAKAD Sekolah</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CSS Variable & Style Dinamis -->
+  <style>
+    :root {
+      --primary-color: #2563eb; /* Warna Default: Blue */
+      --primary-hover: #1d4ed8;
+    }
+    .bg-theme { background-color: var(--primary-color) !important; }
+    .bg-theme-hover:hover { background-color: var(--primary-hover) !important; }
+    .text-theme { color: var(--primary-color) !important; }
+    .border-theme { border-color: var(--primary-color) !important; }
+  </style>
+
+  <script>
+    // Load Warna Tema dari LocalStorage atau Supabase secara otomatis
+    const savedColor = localStorage.getItem('theme_color') || '#2563eb';
+    const savedHover = localStorage.getItem('theme_hover') || '#1d4ed8';
+    document.documentElement.style.setProperty('--primary-color', savedColor);
+    document.documentElement.style.setProperty('--primary-hover', savedHover);
+  </script>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 md:p-8 font-sans">
+
+  <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+    <!-- Header -->
+    <div class="bg-blue-600 p-6 text-white flex justify-between items-center">
+      <div>
+        <h1 class="text-xl font-bold">📋 Form Kedisiplinan Guru</h1>
+        <p class="text-blue-100 text-xs mt-1">Laporkan pelanggaran beserta kronologi & tindakan awal di tempat.</p>
+      </div>
+      <a href="index.html" class="bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-1.5 rounded-lg transition font-medium">
+        🏠 Home
+      </a>
+    </div>
+
+    <!-- Form -->
+    <form id="reportForm" class="p-6 space-y-4">
+      
+      <!-- 1. Pilih Siswa -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pilih Siswa <span class="text-red-500">*</span></label>
+        <select id="studentSelect" required class="w-full border border-slate-300 rounded-lg p-2.5 bg-white text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+          <option value="">-- Memuat daftar siswa... --</option>
+        </select>
+      </div>
+
+      <!-- 2. Jenis Pelanggaran -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jenis Pelanggaran <span class="text-red-500">*</span></label>
+        <input type="text" id="violationType" required placeholder="Contoh: Terlambat, Merokok di Kantin, Atribut Tidak Lengkap" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
+      </div>
+
+      <!-- 3. Kronologi Kejadian -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Kronologi Kejadian <span class="text-red-500">*</span></label>
+        <textarea id="chronology" required rows="3" placeholder="Ceritakan singkat kronologi kejadian..." class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"></textarea>
+      </div>
+
+      <!-- 4. Tindakan Guru (Awal) -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tindakan Langsung Guru (Awal) <span class="text-red-500">*</span></label>
+        <textarea id="initialAction" required rows="2" placeholder="Contoh: Ditegur, barang disita sementara, diminta piket..." class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"></textarea>
+      </div>
+
+      <!-- Tombol Submit -->
+      <button type="submit" id="btnSubmit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+        <span>🚀 Kirim Laporan ke Wali Kelas</span>
+      </button>
+
+      <!-- Alert Status -->
+      <div id="statusMsg" class="hidden p-3 rounded-lg text-xs text-center font-medium"></div>
+
+    </form>
+  </div>
+
+  <script>
+    // ⚙️ SUPABASE CONFIG (SUDAH TERSAMBUNG DENGAN DATABASE LU)
+    const SUPABASE_URL = 'https://xjnhknntbytizgecqdox.supabase.co';[cite: 2]
+    const SUPABASE_KEY = 'YOUR_SUPABASE_PUBLISHABLE_KEY'; // Tempel sb_publishable_yUR2kIFIsUZ0g7RUomempg_gmP3z... di sini[cite: 1]
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const studentSelect = document.getElementById('studentSelect');
+    const reportForm = document.getElementById('reportForm');
+    const statusMsg = document.getElementById('statusMsg');
+    const btnSubmit = document.getElementById('btnSubmit');
+
+    // 1. Load Daftar Siswa dari Supabase saat halaman dibuka
+    async function fetchStudents() {
+      const { data: students, error } = await supabaseClient
+        .from('students')
+        .select('id, full_name, nisn')
+        .order('full_name', { ascending: true });
+
+      if (error) {
+        studentSelect.innerHTML = `<option value="">❌ Gagal memuat siswa: ${error.message}</option>`;
+        return;
+      }
+
+      if (students && students.length > 0) {
+        studentSelect.innerHTML = '<option value="">-- Pilih Nama Siswa --</option>';
+        students.forEach(s => {
+          studentSelect.innerHTML += `<option value="${s.id}">${s.full_name} (${s.nisn})</option>`;
+        });
+      } else {
+        studentSelect.innerHTML = '<option value="">(Belum ada data siswa di tabel students)</option>';
+      }
+    }
+
+    // 2. Kirim Data Laporan ke Supabase
+    reportForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      btnSubmit.disabled = true;
+      btnSubmit.innerText = "⏳ Mengirim Laporan...";
+      statusMsg.className = "hidden";
+
+      const studentId = studentSelect.value;
+      const chronology = document.getElementById('chronology').value;
+      const initialAction = document.getElementById('initialAction').value;
+
+      // Ambil user auth jika ada session login, atau pakai ID fallback
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const currentUserId = session ? session.user.id : null;
+
+      if (!studentId) {
+        alert("Silakan pilih nama siswa terlebih dahulu!");
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = "🚀 Kirim Laporan ke Wali Kelas";
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('discipline_reports')
+        .insert([{
+          student_id: studentId,
+          reporter_id: currentUserId, // Menggunakan ID user yang sedang login
+          chronology: chronology,
+          initial_action: initialAction,
+          status: 'pending_wali_kelas'
+        }]);
+
+      if (error) {
+        statusMsg.className = "p-3 rounded-lg text-xs text-center font-medium bg-rose-100 text-rose-700 block";
+        statusMsg.innerText = "❌ Gagal Mengirim: " + error.message;
+      } else {
+        statusMsg.className = "p-3 rounded-lg text-xs text-center font-medium bg-emerald-100 text-emerald-700 block";
+        statusMsg.innerText = "✅ Laporan Berhasil Dibuat & Diteruskan ke Wali Kelas!";
+        reportForm.reset();
+      }
+
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = "<span>🚀 Kirim Laporan ke Wali Kelas</span>";
+    });
+
+    // Jalankan load data siswa saat halaman dibuka
+    fetchStudents();
+  </script>
+</body>
+</html>

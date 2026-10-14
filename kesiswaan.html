@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIAKAD Sekolah</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CSS Variable & Style Dinamis -->
+  <style>
+    :root {
+      --primary-color: #2563eb; /* Warna Default: Blue */
+      --primary-hover: #1d4ed8;
+    }
+    .bg-theme { background-color: var(--primary-color) !important; }
+    .bg-theme-hover:hover { background-color: var(--primary-hover) !important; }
+    .text-theme { color: var(--primary-color) !important; }
+    .border-theme { border-color: var(--primary-color) !important; }
+  </style>
+
+  <script>
+    // Load Warna Tema dari LocalStorage atau Supabase secara otomatis
+    const savedColor = localStorage.getItem('theme_color') || '#2563eb';
+    const savedHover = localStorage.getItem('theme_hover') || '#1d4ed8';
+    document.documentElement.style.setProperty('--primary-color', savedColor);
+    document.documentElement.style.setProperty('--primary-hover', savedHover);
+  </script>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 md:p-8 font-sans">
+
+  <div class="max-w-6xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800">📊 Dashboard Kesiswaan & BK</h1>
+        <p class="text-slate-500 text-xs mt-0.5">Monitoring rekapitulasi kedisiplinan seluruh siswa & penanganan kasus sekolah.</p>
+      </div>
+      <a href="index.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition self-start md:self-auto flex items-center gap-1">
+        🏠 Kembali ke Home
+      </a>
+    </div>
+
+    <!-- Statistik Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Kasus</p>
+          <h3 id="statTotal" class="text-2xl font-extrabold text-slate-800 mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold">📋</div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Wali Kelas</p>
+          <h3 id="statPending" class="text-2xl font-extrabold text-amber-600 mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl font-bold">⏳</div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Kasus Selesai (Closed)</p>
+          <h3 id="statClosed" class="text-2xl font-extrabold text-emerald-600 mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl font-bold">✅</div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Eskalasi ke BK</p>
+          <h3 id="statEscalated" class="text-2xl font-extrabold text-rose-600 mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-xl font-bold">🚨</div>
+      </div>
+    </div>
+
+    <!-- Tabel Rekapitulasi -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h2 class="font-bold text-slate-800 text-base">📑 Rekapitulasi Laporan Se-Sekolah</h2>
+        <button onclick="fetchAllReports()" class="text-blue-600 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 self-start sm:self-auto">
+          🔄 Refresh Data
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 text-[11px] uppercase tracking-wider border-b border-slate-100">
+              <th class="p-4">Tanggal & Siswa</th>
+              <th class="p-4">Kronologi & Tindakan Guru</th>
+              <th class="p-4">Tindak Lanjut Wali Kelas</th>
+              <th class="p-4">Status Kasus</th>
+            </tr>
+          </thead>
+          <tbody id="masterReportsTable" class="divide-y divide-slate-100 text-xs text-slate-700">
+            <tr>
+              <td colspan="4" class="p-8 text-center text-slate-400">Memuat data rekapitulasi...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ⚙️ SUPABASE CONFIG (TERHUBUNG KE DATABASE LU)
+    const SUPABASE_URL = 'https://xjnhknntbytizgecqdox.supabase.co'; //[cite: 2]
+    const SUPABASE_KEY = 'YOUR_SUPABASE_PUBLISHABLE_KEY'; // Ganti dengan Publishable Key lengkap milikmu[cite: 1]
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const masterReportsTable = document.getElementById('masterReportsTable');
+    const statTotal = document.getElementById('statTotal');
+    const statPending = document.getElementById('statPending');
+    const statClosed = document.getElementById('statClosed');
+    const statEscalated = document.getElementById('statEscalated');
+
+    // Ambil seluruh data laporan untuk Kesiswaan
+    async function fetchAllReports() {
+      masterReportsTable.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400">Memuat data rekapitulasi...</td></tr>';
+
+      const { data: reports, error } = await supabaseClient
+        .from('discipline_reports')
+        .select(`
+          id,
+          chronology,
+          initial_action,
+          follow_up_action,
+          status,
+          created_at,
+          students ( full_name )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        masterReportsTable.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-rose-500 font-medium">❌ Gagal memuat data: ${error.message}</td></tr>`;
+        return;
+      }
+
+      if (!reports || reports.length === 0) {
+        masterReportsTable.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400">Belum ada catatan kedisiplinan di database.</td></tr>';
+        statTotal.innerText = '0';
+        statPending.innerText = '0';
+        statClosed.innerText = '0';
+        statEscalated.innerText = '0';
+        return;
+      }
+
+      // Hitung statistik
+      let total = reports.length;
+      let pending = reports.filter(r => r.status === 'pending_wali_kelas').length;
+      let closed = reports.filter(r => r.status === 'closed').length;
+      let escalated = reports.filter(r => r.status === 'escalated_kesiswaan').length;
+
+      statTotal.innerText = total;
+      statPending.innerText = pending;
+      statClosed.innerText = closed;
+      statEscalated.innerText = escalated;
+
+      masterReportsTable.innerHTML = '';
+      reports.forEach(r => {
+        const studentName = r.students?.full_name || 'Siswa (Data Dihapus)';
+        const dateStr = new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        
+        let statusBadge = '<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full">Pending Wali Kelas</span>';
+        if (r.status === 'closed') {
+          statusBadge = '<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full">Selesai (Closed)</span>';
+        } else if (r.status === 'escalated_kesiswaan') {
+          statusBadge = '<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 py-1 rounded-full">Eskalasi BK</span>';
+        }
+
+        const followUpText = r.follow_up_action 
+          ? `<span class="text-slate-700 font-medium">${r.follow_up_action}</span>` 
+          : `<span class="text-slate-400 italic">Belum ditindaklanjuti wali kelas</span>`;
+
+        masterReportsTable.innerHTML += `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="p-4 font-bold text-slate-800 align-top">
+              ${studentName}
+              <div class="text-[11px] font-normal text-slate-400">${dateStr}</div>
+            </td>
+            <td class="p-4 max-w-xs text-slate-600 align-top">
+              <div class="font-semibold text-slate-700">Kronologi:</div>
+              <p class="truncate mb-1">${r.chronology}</p>
+              <div class="font-semibold text-slate-700">Tindakan Awal Guru:</div>
+              <p class="truncate">${r.initial_action}</p>
+            </td>
+            <td class="p-4 max-w-xs align-top">
+              ${followUpText}
+            </td>
+            <td class="p-4 align-top">
+              ${statusBadge}
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Jalankan fetch data saat halaman dibuka
+    fetchAllReports();
+  </script>
+</body>
+</html>
